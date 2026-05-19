@@ -295,21 +295,21 @@ class GameScene extends Phaser.Scene {
         
         for(let i=0; i<5; i++) { this.spawnIngredient(); this.spawnEnemy(); }
 
-// ==========================================
-        // 📱 CONTROLLI TOUCH GIGANTI E ABBASSATI
+        // ==========================================
+        // 📱 CONTROLLI TOUCH IMPILATI (STILE GAMEPAD)
         // ==========================================
         this.input.addPointer(2);
 
-        // Disegniamo la linea di demarcazione subito sotto il gioco (a 600px)
+        // Linea di demarcazione subito sotto il gioco (a 600px)
         let divider = this.add.graphics();
         divider.lineStyle(6, 0x34495e, 1);
         divider.lineBetween(0, 600, 800, 600);
 
-        // Nuova altezza Y per i pulsanti: spinti molto più in basso nella banda nera
-        let btnY = 820; 
+        // --- LATO SINISTRO: FRECCE DI MOVIMENTO ---
+        let arrowsY = 800; // Altezza fissa per le frecce, comoda per il pollice sinistro
 
-        // 1. Pulsante SINISTRA (Molto più grande e spazioso)
-        let leftBtn = this.add.text(60, btnY, '  ◀  ', { 
+        // 1. Pulsante SINISTRA
+        let leftBtn = this.add.text(50, arrowsY, '  ◀  ', { 
             fontSize: '52px', fill: '#fff', backgroundColor: '#2c3e50', padding: 25
         }).setInteractive();
         leftBtn.on('pointerdown', () => { this.moveLeft = true; });
@@ -317,24 +317,34 @@ class GameScene extends Phaser.Scene {
         leftBtn.on('pointerout', () => { this.moveLeft = false; });
 
         // 2. Pulsante DESTRA
-        let rightBtn = this.add.text(240, btnY, '  ▶  ', { 
+        let rightBtn = this.add.text(220, arrowsY, '  ▶  ', { 
             fontSize: '52px', fill: '#fff', backgroundColor: '#2c3e50', padding: 25
         }).setInteractive();
         rightBtn.on('pointerdown', () => { this.moveRight = true; });
         rightBtn.on('pointerup', () => { this.moveRight = false; });
         rightBtn.on('pointerout', () => { this.moveRight = false; });
 
-        // 3. Pulsante SALTA (Separato e gigante)
-        let jumpBtn = this.add.text(460, btnY, ' SALTA ', { 
-            fontSize: '36px', fill: '#fff', backgroundColor: '#2980b9', padding: 32
+
+        // --- LATO DESTRO: AZIONI IMPILATE VIRTUALI ---
+        // Impostiamo una X comune per allinearli a destra (es. 580px)
+        let actionX = 580;
+
+        // 3. Pulsante SALTA (SOPRA - Altezza Y: 710)
+        let jumpBtn = this.add.text(actionX, 710, '  SALTA  ', { 
+            fontSize: '36px', fill: '#fff', backgroundColor: '#2980b9', padding: 22
         }).setInteractive();
+        // Centriamo la larghezza del tasto per farlo combaciare perfettamente con quello sotto
+        jumpBtn.setFixedSize(160, 45); 
+        
         jumpBtn.on('pointerdown', () => { this.mustJump = true; });
         jumpBtn.on('pointerup', () => { this.mustJump = false; });
 
-        // 4. Pulsante BIRRA
-        let attackBtn = this.add.text(640, btnY, ' BIRRA ', { 
-            fontSize: '36px', fill: '#000', backgroundColor: '#f1c40f', padding: 32
+        // 4. Pulsante BIRRA (SOTTO - Altezza Y: 840)
+        let attackBtn = this.add.text(actionX, 840, '  BIRRA  ', { 
+            fontSize: '36px', fill: '#000', backgroundColor: '#f1c40f', padding: 22
         }).setInteractive();
+        attackBtn.setFixedSize(160, 45);
+
         attackBtn.on('pointerdown', () => { this.mustAttack = true; });
     }
 
