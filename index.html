@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bar Mariò - 70th Anniversary Arcade</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e74c3c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<script>
+    let deferredPrompt;
+
+    // Funzione per capire se l'utente sta usando un iPhone/iPad
+    const isIOS = () => {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    };
+
+    // Funzione per verificare se l'app è già avviata in modalità "App installata"
+    const isStandalone = () => {
+        return (window.matchMedia('(display-mode: standalone)').matches) || (window.navigator.standalone);
+    };
+
+    window.addEventListener('load', () => {
+        // Registrazione classica del Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+        }
+
+        const banner = document.getElementById('pwa-banner');
+        const textPrompt = document.getElementById('pwa-text');
+        const installBtn = document.getElementById('pwa-btn-install');
+        const closeBtn = document.getElementById('pwa-btn-close');
+
+        // Se l'utente ha già installato e aperto l'app come PWA, non mostriamo nulla
+        if (isStandalone()) return;
+
+        // GESTIONE IPHONE (iOS)
+        if (isIOS()) {
+            // Modifichiamo il testo spiegando i passaggi su Safari
+            textPrompt.innerHTML = "Gioca al meglio! Tocca l'icona di condivisione <span style='font-size:18px;'>⎋</span> in basso e seleziona <b>'Aggiungi alla schermata Home'</b>.";
+            
+            // Mostriamo il banner dopo 3 secondi dall'avvio del gioco
+            setTimeout(() => { banner.style.display = 'flex'; }, 3000);
+        }
+
+        // GESTIONE ANDROID / DESKTOP CHROME
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Impedisce a Chrome di far apparire il suo mini-banner di default
+            e.preventDefault();
+            // Salva l'evento per usarlo al click del bottone
+            deferredPrompt = e;
+            
+            // Mostra il pulsante "INSTALLA" dedicato ad Android
+            installBtn.style.display = 'block';
+            textPrompt.innerText = "Installa l'app del Bar Mariò sulla home del tuo telefono!";
+            
+            // Mostra il banner dopo 3 secondi
+            setTimeout(() => { banner.style.display = 'flex'; }, 3000);
+        });
+
+        // Azione del tasto Installa (Solo Android)
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            // Mostra il popup di installazione nativo di Android
+            deferredPrompt.prompt();
+            // Attende la risposta dell'utente
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`Risposta utente all'installazione: ${outcome}`);
+            // Resetta la variabile
+            deferredPrompt = null;
+            // Nasconde il banner
+            banner.style.display = 'none';
+        });
+
+        // Azione del tasto Chiudi (Per entrambi)
+        closeBtn.addEventListener('click', () => {
+            banner.style.display = 'none';
+        });
+    });
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            overflow: hidden;
+            touch-action: none;
+            
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Spinge tutto verso il bordo superiore */
+        }
+        
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Allinea il gioco in alto */
+        }
+        
+        canvas {
+            /* 🕹️ FORZATURA CSS PER MOBILE:
+               Diciamo al browser di adattare il gioco allo schermo mantenendo le proporzioni,
+               senza che Phaser possa bloccarlo o tagliarlo a sinistra. */
+            width: 100vw !important;
+            height: auto !important;
+            max-width: 800px; /* Impedisce di sgranare su schermi giganti */
+            max-height: 720px;
+            
+            box-shadow: 0px 0px 30px rgba(231, 76, 60, 0.5);
+            border: 2px solid #e74c3c;
+            
+            /* Spazio dal bordo superiore dello schermo del telefono.
+               Aumenta questo numero (es. 20px, 30px) se vuoi distanziarlo un po' dal notch/baffo dell'iPhone */
+            margin-top: 5px; 
+        }
+        #pwa-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 20px rgba(0,0,0,0.6);
+            border: 2px solid #e74c3c;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 9999; /* Lo tiene sopra al gioco di Phaser */
+            font-family: sans-serif;
+            text-align: center;
+        }
+        #pwa-text {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .pwa-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        #pwa-banner button {
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #pwa-btn-install {
+            background-color: #2ecc71;
+            color: white;
+        }
+        #pwa-btn-close {
+            background-color: #7f8c8d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pwa-banner" style="display: none;">
+    <p id="pwa-text">Installa l'app del Bar Mariò sul tuo telefono!</p>
+    <div class="pwa-buttons">
+        <button id="pwa-btn-install" style="display: none;">INSTALLA</button>
+        <button id="pwa-btn-close">CHIUDI</button>
+    </div>
+</div>
+
+<div id="game-container"></div>
+
+<script>
+
+// --- SCENA 1: IL MENU INIZIALE ---
+class TitleScene extends Phaser.Scene {
+    constructor() { super('TitleScene'); }
+
+    preload() {
+        this.load.image('sfondo', 'sfondo.png');
+        this.load.image('logo', 'logo.png');
+        this.load.image('birra', 'birra.png');
+    }
+
+    create() {
+        // Manteniamo il centro visivo della copertina a 300 (metà dei 600px di gioco)
+        this.add.image(400, 300, 'sfondo').setAlpha(0.4);
+        this.add.image(400, 180, 'logo').setScale(0.8);
+        
+        this.add.text(400, 330, "70 ANNI DI PASSIONE", { fontSize: '32px', fill: '#f1c40f', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5);
+        this.add.text(400, 380, "DAL 1956 - IL CUORE DI CIVITANOVA", { fontSize: '18px', fill: '#fff' }).setOrigin(0.5);
+
+        this.add.image(300, 480, 'birra').setScale(1.2).setAngle(-15);
+        this.add.image(500, 480, 'birra').setScale(1.2).setAngle(15);
+
+        let startText = this.add.text(400, 550, "PREMI [ X ] O TOCCA LO SCHERMO PER INIZIARE", { 
+            fontSize: '20px', fill: '#2ecc71', fontStyle: 'bold', backgroundColor: '#000', padding: 10
+        }).setOrigin(0.5);
+
+        this.tweens.add({ targets: startText, alpha: 0, duration: 500, ease: 'Linear', repeat: -1, yoyo: true });
+
+        this.input.keyboard.on('keydown-X', () => { this.scene.start('GameScene'); });
+        this.input.on('pointerdown', () => { this.scene.start('GameScene'); });
+    }
+}
+
+// --- SCENA 2: IL GIOCO VERO E PROPRIO ---
+class GameScene extends Phaser.Scene {
+    constructor() { super('GameScene'); }
+
+    init() {
+        this.score = 0;
+        this.gameOver = false;
+        this.isAttacking = false;
+        
+        // Controlli Mobile
+        this.moveLeft = false;
+        this.moveRight = false;
+        this.mustJump = false;
+        this.mustAttack = false;
+    }
+
+    preload() {
+        this.load.image('piattaforma', 'piattaforma.png');
+        this.load.image('acqua', 'acqua.png');
+        this.load.image('malto', 'malto.png');
+        this.load.image('luppolo', 'luppolo.png');
+        this.load.image('lievito', 'lievito.png');
+        this.load.spritesheet('barista', 'barista.png', { frameWidth: 128, frameHeight: 156 });
+        this.load.image('cliente1', 'cliente1.png');
+        this.load.image('cliente2', 'cliente2.png');
+        this.load.image('cliente3', 'cliente3.png');
+        this.load.image('cliente4', 'cliente4.png');
+
+        this.load.audio('musicaSfondo', 'musica.m4a');
+        this.load.audio('suonoCrash', 'crash.m4a');
+        this.load.audio('suonoLancio', 'lancio.m4a');   
+        this.load.audio('suonoColpito', 'colpito.m4a'); 
+    }
+
+    create() {
+        // Lo sfondo e l'area di gioco utile rimangono ancorati a 800x600
+        this.add.image(400, 300, 'sfondo');
+        this.add.image(70, 70, 'logo').setScale(0.3);
+        
+        this.bgMusic = this.sound.add('musicaSfondo', { loop: true, volume: 0.4 });
+        this.bgMusic.play();
+
+        this.platforms = this.physics.add.staticGroup();
+        this.platforms.create(400, 568, 'piattaforma').setScale(2).refreshBody(); 
+        this.platforms.create(600, 400, 'piattaforma');
+        this.platforms.create(150, 300, 'piattaforma');
+        this.platforms.create(750, 220, 'piattaforma');
+
+        // Impediamo al barista di cadere nella zona dei bottoni impostando il limite del mondo a 600px di altezza
+        this.physics.world.setBounds(0, 0, 800, 600);
+
+        this.player = this.physics.add.sprite(100, 400, 'barista');
+        this.player.setBounce(0.05);
+        this.player.setCollideWorldBounds(true);
+        this.player.body.setSize(70, 140); 
+        this.player.body.setOffset(29, 16);
+
+        this.anims.create({ key: 'idle', frames: [ { key: 'barista', frame: 0 } ], frameRate: 20 });
+        this.anims.create({ key: 'walk', frames: this.anims.generateFrameNumbers('barista', { start: 4, end: 7 }), frameRate: 10, repeat: -1 });
+        this.anims.create({ key: 'attack', frames: this.anims.generateFrameNumbers('barista', { start: 1, end: 2 }), frameRate: 12, repeat: 0 });
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceBar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        this.beersProjectiles = this.physics.add.group({ allowGravity: false });
+        this.ingredients = this.physics.add.group();
+        this.enemies = this.physics.add.group();
+
+        this.tipiIngredienti = ['birra', 'acqua', 'malto', 'luppolo', 'lievito'];
+        this.clientiFoto = ['cliente1', 'cliente2', 'cliente3', 'cliente4'];
+
+        this.scoreText = this.add.text(180, 20, 'PUNTI: 1956', { fontSize: '24px', fill: '#fff', backgroundColor: '#000' });
+
+        this.physics.add.collider(this.player, this.platforms);
+        this.physics.add.collider(this.ingredients, this.platforms);
+        this.physics.add.collider(this.enemies, this.platforms);
+        this.physics.add.overlap(this.player, this.ingredients, this.collectIngredient, null, this);
+        this.physics.add.collider(this.player, this.enemies, this.hitEnemy, null, this);
+        this.physics.add.overlap(this.beersProjectiles, this.enemies, this.shootEnemy, null, this);
+
+        this.time.addEvent({ delay: 1000, callback: this.spawnIngredient, callbackScope: this, loop: true });
+        this.time.addEvent({ delay: 2000, callback: this.spawnEnemy, callbackScope: this, loop: true });
+        
+        for(let i=0; i<5; i++) { this.spawnIngredient(); this.spawnEnemy(); }
+
+        // ==========================================
+        // 📱 CONTROLLI TOUCH NELLA ZONA NERA INTERIORE
+        // ==========================================
+        this.input.addPointer(2);
+
+        // Disegniamo una linea di demarcazione estetica tra il gioco e la plancia comandi
+        let divider = this.add.graphics();
+        divider.lineStyle(4, 0x34495e, 1);
+        divider.lineBetween(0, 600, 800, 600);
+
+        // Altezza fissa Y per i pulsanti (640px si trova proprio al centro della nuova fascia nera)
+        let btnY = 640;
+
+        // 1. Pulsante SINISTRA
+        let leftBtn = this.add.text(50, btnY, '  ◀  ', { 
+            fontSize: '32px', fill: '#fff', backgroundColor: '#2c3e50', padding: 12
+        }).setInteractive();
+        leftBtn.on('pointerdown', () => { this.moveLeft = true; });
+        leftBtn.on('pointerup', () => { this.moveLeft = false; });
+        leftBtn.on('pointerout', () => { this.moveLeft = false; });
+
+        // 2. Pulsante DESTRA
+        let rightBtn = this.add.text(180, btnY, '  ▶  ', { 
+            fontSize: '32px', fill: '#fff', backgroundColor: '#2c3e50', padding: 12
+        }).setInteractive();
+        rightBtn.on('pointerdown', () => { this.moveRight = true; });
+        rightBtn.on('pointerup', () => { this.moveRight = false; });
+        rightBtn.on('pointerout', () => { this.moveRight = false; });
+
+        // 3. Pulsante SALTA
+        let jumpBtn = this.add.text(490, btnY, '  SALTA  ', { 
+            fontSize: '26px', fill: '#fff', backgroundColor: '#2980b9', padding: 15
+        }).setInteractive();
+        jumpBtn.on('pointerdown', () => { this.mustJump = true; });
+        jumpBtn.on('pointerup', () => { this.mustJump = false; });
+
+        // 4. Pulsante BIRRA
+        let attackBtn = this.add.text(650, btnY, '  BIRRA  ', { 
+            fontSize: '26px', fill: '#000', backgroundColor: '#f1c40f', padding: 15
+        }).setInteractive();
+        attackBtn.on('pointerdown', () => { this.mustAttack = true; });
+    }
+
+    update() {
+        if (this.gameOver) return;
+
+        if (this.isAttacking) {
+            if (this.player.anims.isPlaying && this.player.anims.currentAnim.key === 'attack') return;
+            else this.isAttacking = false;
+        }
+
+        if (Phaser.Input.Keyboard.JustDown(this.spaceBar) || this.mustAttack) { 
+            this.mustAttack = false; 
+            this.launchBeer(); 
+            return; 
+        }
+
+        let keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+        let keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+        let keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+        let staToccandoTerra = this.player.body.touching.down || this.player.body.blocked.down || this.player.body.onFloor();
+
+        if (this.cursors.left.isDown || keyA.isDown || this.moveLeft) {
+            this.player.setVelocityX(-180);
+            if (staToccandoTerra) this.player.anims.play('walk', true);
+            this.player.flipX = true;
+        } else if (this.cursors.right.isDown || keyD.isDown || this.moveRight) {
+            this.player.setVelocityX(180);
+            if (staToccandoTerra) this.player.anims.play('walk', true);
+            this.player.flipX = false;
+        } else {
+            this.player.setVelocityX(0);
+            if (staToccandoTerra) this.player.anims.play('idle', true);
+        }
+
+        if (!staToccandoTerra) this.player.setFrame(5);
+        if ((this.cursors.up.isDown || keyW.isDown || this.mustJump) && staToccandoTerra) {
+            this.player.body.setVelocityY(-540);
+        }
+    }
+
+    spawnIngredient() {
+        if (this.gameOver) return;
+        // Limitiamo la pioggia di ingredienti all'area di gioco (max Y: 500)
+        let item = this.ingredients.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(50, 450), Phaser.Utils.Array.GetRandom(this.tipiIngredienti));
+        item.setScale(0.7).setBounceY(Phaser.Math.FloatBetween(0.2, 0.4));
+    }
+
+    spawnEnemy() {
+        if (this.gameOver) return;
+        // Limitiamo la comparsa dei nemici all'area di gioco (max Y: 500)
+        let nemico = this.enemies.create(Phaser.Math.Between(200, 750), Phaser.Math.Between(50, 450), Phaser.Utils.Array.GetRandom(this.clientiFoto));
+        nemico.setScale(0.65).setCollideWorldBounds(true).setBounce(1).setVelocity(Phaser.Math.Between(-150, 150), 50);
+    }
+
+    launchBeer() {
+        this.isAttacking = true;
+        this.player.setVelocityX(0); 
+        this.player.anims.play('attack', true);
+        this.sound.play('suonoLancio', { volume: 0.5 });
+
+        let boccale = this.beersProjectiles.create(this.player.x, this.player.y + 10, 'birra');
+        boccale.setScale(0.8).setVelocityX(this.player.flipX ? -400 : 400);
+        this.time.delayedCall(2000, () => boccale.destroy());
+    }
+
+    collectIngredient(player, ingredient) {
+        ingredient.disableBody(true, true);
+        this.score += 70;
+        this.scoreText.setText('PUNTI: ' + (1956 + this.score));
+    }
+
+    shootEnemy(boccale, enemy) {
+        boccale.destroy();
+        enemy.destroy();
+        this.sound.play('suonoColpito', { volume: 0.6 });
+        this.score += 200;
+        this.scoreText.setText('PUNTI: ' + (1956 + this.score));
+    }
+
+    hitEnemy(player, enemy) {
+        this.physics.pause();
+        if (this.bgMusic) this.bgMusic.stop();
+        this.sound.play('suonoCrash', { volume: 2.0 });
+
+        this.player.setTint(0xff0000);
+        this.player.setFrame(0);
+        this.gameOver = true;
+        
+        this.add.text(400, 300, "GAME OVER\nPremi [ R ] o Tocca lo schermo\nper tornare al Menu", { 
+            fontSize: '28px', fill: '#ff0000', align: 'center', backgroundColor: '#000', padding: 15
+        }).setOrigin(0.5);
+
+        this.input.keyboard.once('keydown-R', () => { this.scene.start('TitleScene'); });
+        this.input.once('pointerdown', () => { this.scene.start('TitleScene'); });
+    }
+}
+
+// CONFIGURAZIONE FINALE CON SCALING DELEGATO AL CSS
+const config = {
+    type: Phaser.AUTO,
+    parent: 'game-container',
+    width: 800,
+    height: 720, 
+    scale: {
+        // 💡 DISATTIVIAMO LO SCALE MANAGER DI PHASER
+        // In questo modo non sovrascrive più i nostri comandi di posizionamento
+        mode: Phaser.Scale.NONE 
+    },
+    physics: {
+        default: 'arcade',
+        arcade: { gravity: { y: 600 }, debug: false }
+    },
+    scene: [TitleScene, GameScene]
+};
+
+const game = new Phaser.Game(config);
+</script>
+
+</body>
+</html>
