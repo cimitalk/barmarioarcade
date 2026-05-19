@@ -311,7 +311,7 @@ class GameScene extends Phaser.Scene {
 
         // 1. Pulsante SINISTRA
         let leftBtn = this.add.text(50, arrowsY, '  ◀  ', { 
-            fontSize: '52px', fill: '#fff', backgroundColor: '#2c3e50', padding: 25
+            fontSize: '62px', fill: '#fff', backgroundColor: '#2c3e50', padding: 25
         }).setInteractive();
         leftBtn.on('pointerdown', () => { this.moveLeft = true; });
         leftBtn.on('pointerup', () => { this.moveLeft = false; });
@@ -319,7 +319,7 @@ class GameScene extends Phaser.Scene {
 
         // 2. Pulsante DESTRA
         let rightBtn = this.add.text(220, arrowsY, '  ▶  ', { 
-            fontSize: '52px', fill: '#fff', backgroundColor: '#2c3e50', padding: 25
+            fontSize: '62px', fill: '#fff', backgroundColor: '#2c3e50', padding: 25
         }).setInteractive();
         rightBtn.on('pointerdown', () => { this.moveRight = true; });
         rightBtn.on('pointerup', () => { this.moveRight = false; });
