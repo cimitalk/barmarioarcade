@@ -295,7 +295,7 @@ class GameScene extends Phaser.Scene {
         
         for(let i=0; i<5; i++) { this.spawnIngredient(); this.spawnEnemy(); }
 
-// ==========================================
+        // ==========================================
         // 📱 CONTROLLI TOUCH CORRETTI E ALLINEATI
         // ==========================================
         this.input.addPointer(2);
@@ -334,8 +334,9 @@ class GameScene extends Phaser.Scene {
             fontSize: '36px',
             fontStyle: 'bold',
             align: 'center',
-            fixedWidth: 200,  // Forza il rettangolo ad essere largo esattamente 200px
-            padding: { top: 20, bottom: 20 } // Padding verticale identico
+            fixedWidth: 200,
+            fixedHeight: 100, // Forza il rettangolo ad essere largo esattamente 200px
+            padding: { top: 5, bottom: 5 } // Padding verticale identico
         };
 
         // 3. Pulsante SALTA (SOPRA - Altezza Y: 710)
