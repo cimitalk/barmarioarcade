@@ -224,6 +224,7 @@ class GameScene extends Phaser.Scene {
         this.moveRight = false;
         this.mustJump = false;
         this.mustAttack = false;
+        this.distanzanuovenascite = 250; // Il nemico deve nascere ad almeno 250 pixel di distanza dal barista
     }
 
     preload() {
@@ -334,9 +335,9 @@ class GameScene extends Phaser.Scene {
             fontSize: '36px',
             fontStyle: 'bold',
             align: 'center',
-            fixedWidth: 200,
-            fixedHeight: 150, // Forza il rettangolo ad essere largo esattamente 200px
-            padding: { top: 5, bottom: 5 } // Padding verticale identico
+            fixedWidth: 200, // Forza il rettangolo ad essere largo esattamente 200px
+            fixedHeight: 150, // Forza il rettangolo ad essere alto esattamente 150px
+            padding: { top: 5, bottom: 5 } // Padding verticale abbassato a 5
         };
 
         // 3. Pulsante SALTA (SOPRA - Altezza Y: 710)
@@ -404,9 +405,37 @@ class GameScene extends Phaser.Scene {
 
     spawnEnemy() {
         if (this.gameOver) return;
-        // Limitiamo la comparsa dei nemici all'area di gioco (max Y: 500)
-        let nemico = this.enemies.create(Phaser.Math.Between(200, 750), Phaser.Math.Between(50, 450), Phaser.Utils.Array.GetRandom(this.clientiFoto));
-        nemico.setScale(0.65).setCollideWorldBounds(true).setBounce(1).setVelocity(Phaser.Math.Between(-150, 150), 50);
+
+        let x, y, distanza;
+        let tentativi = 0;
+        let massimoTentativi = 10; // Sicurezza per evitare che il gioco si blocchi in un loop infinito
+
+        do {
+            // 1. Genera coordinate casuali all'interno dell'area di gioco utile (max Y: 450)
+            x = Phaser.Math.Between(200, 750);
+            y = Phaser.Math.Between(50, 450);
+
+            // 2. Calcola la distanza matematica tra questo punto (x, y) e la posizione attuale del barista
+            distanza = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y);
+            
+            tentativi++;
+        } while (distanza < this.distanzanuovenascite && tentativi < massimoTentativi);
+
+        // Se per assurdo dopo 10 tentativi è ancora troppo vicino (es. mappa intasata), 
+        // lo forziamo a nascere sul lato opposto rispetto al giocatore per sicurezza
+        if (distanza < this.distanzanuovenascite) {
+            x = this.player.x < 400 ? 700 : 100;
+            y = 100;
+        }
+
+        // 3. Creazione effettiva del nemico nel punto sicuro trovato
+        let nemico = this.enemies.create(x, y, Phaser.Utils.Array.GetRandom(this.clientiFoto));
+        
+        // Configurazione fisica del nemico (invariata)
+        nemico.setScale(0.65)
+            .setCollideWorldBounds(true)
+            .setBounce(1)
+            .setVelocity(Phaser.Math.Between(-150, 150), 50);
     }
 
     launchBeer() {
