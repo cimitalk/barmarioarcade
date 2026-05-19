@@ -282,7 +282,7 @@ class GameScene extends Phaser.Scene {
         this.tipiIngredienti = ['birra', 'acqua', 'malto', 'luppolo', 'lievito'];
         this.clientiFoto = ['cliente1', 'cliente2', 'cliente3', 'cliente4'];
 
-        this.scoreText = this.add.text(180, 20, 'PUNTI: 1956', { fontSize: '24px', fill: '#fff', backgroundColor: '#000' });
+        this.scoreText = this.add.text(180, 20, 'PUNTI: 0', { fontSize: '24px', fill: '#fff', backgroundColor: '#000' });
 
         this.physics.add.collider(this.player, this.platforms);
         this.physics.add.collider(this.ingredients, this.platforms);
